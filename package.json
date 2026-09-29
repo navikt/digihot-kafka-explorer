@@ -1,0 +1,41 @@
+{
+  "name": "digihot-kafka-explorer",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env --experimental-strip-types src/app.mts",
+    "dev": "node --env-file-if-exists=.env --experimental-strip-types --watch src/app.mts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test src/*.test.mts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.6.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.6.0",
+  "type": "module",
+  "dependencies": {
+    "@elastic/ecs-pino-format": "^1.5.0",
+    "express": "^5.2.1",
+    "kafkajs": "^2.2.4",
+    "pino": "^10.3.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.3",
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2"
+  },
+  "prettier": {
+    "printWidth": 120,
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  }
+}

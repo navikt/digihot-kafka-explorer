@@ -1,0 +1,36 @@
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  labels:
+    app: digihot-kafka-explorer
+    team: teamdigihot
+  name: digihot-kafka-explorer
+  namespace: teamdigihot
+  annotations:
+    snorlax.nais.io/enabled: "true"
+spec:
+  image: {{ image }}
+  port: 3000
+  ingresses:
+    - https://digihot-kafka-explorer.intern.dev.nav.no
+  liveness:
+    path: /isalive
+  readiness:
+    path: /isready
+  replicas:
+    max: 1
+    min: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1024Mi
+    requests:
+      cpu: 10m
+      memory: 256Mi
+  kafka:
+    pool: nav-dev
+  env:
+    - name: PORT
+      value: "3000"
+    - name: KAFKA_RAPID_TOPIC
+      value: "teamdigihot.hm-soknadsbehandling-v1"

@@ -1,0 +1,45 @@
+body {
+  padding-block: 1rem 3rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  gap: 1.5rem;
+}
+
+#diagram {
+  height: min(65vh, 38rem);
+  min-height: 20rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+}
+
+#messages {
+  max-height: min(65vh, 38rem);
+  overflow: auto;
+  padding-left: 1.5rem;
+}
+
+#messages li {
+  margin-bottom: 0.5rem;
+}
+
+#messages button {
+  width: 100%;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+#details {
+  max-height: 30rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 48rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

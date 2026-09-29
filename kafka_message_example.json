@@ -1,0 +1,20 @@
+{
+  "oppgaveId": "1",
+  "@id": "a14317ec-0e09-48cc-991d-f2da775a5f7b",
+  "@opprettet": "2026-09-29T12:04:42.781815",
+  "system_read_count": 1,
+  "system_participating_services": [
+    {
+      "id": "a14317ec-0e09-48cc-991d-f2da775a5f7b",
+      "time": "2026-09-29T12:04:42.781815",
+      "service": "hm-joark-listener",
+      "instance": "Erik-sin-MacBook-Pro-5.local"
+    },
+    {
+      "id": "0656aa6a-b34c-4020-a234-a105a892414d",
+      "time": "2026-09-29T12:05:35.529998",
+      "service": "hm-oppgave-sink",
+      "instance": "Erik-sin-MacBook-Pro-5.local"
+    }
+  ]
+}

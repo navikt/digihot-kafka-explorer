@@ -1,0 +1,106 @@
+name: Bygg og deploy til dev-gcp
+
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+      - "LICENCE"
+      - "CODEOWNERS"
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Bygg
+    permissions:
+      packages: write
+      contents: write
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      docker_image: ${{ steps.docker-build-push.outputs.image }}
+      version_tag: ${{ steps.version-tag.outputs.VERSION_TAG }}
+
+    steps:
+      - name: Sjekk ut koden
+        uses: actions/checkout@v7
+
+      - name: Før deploy
+        uses: navikt/digihot-deploy/actions/pre-deploy@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bygg og push Docker image
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: teamdigihot
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          tag: ${{ env.VERSION_TAG }}
+          no_cache: true
+
+      - name: Definer versjon
+        id: version-tag
+        run: echo "VERSION_TAG=${{ env.VERSION_TAG }}" >> "$GITHUB_OUTPUT"
+
+  deploy-dev:
+    name: Deploy til dev-gcp
+    environment: "dev-gcp:teamdigihot"
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: write
+      id-token: write
+    timeout-minutes: 15
+    env:
+      VERSION_TAG: ${{ needs.build.outputs.version_tag }}
+
+    steps:
+      - name: Sjekk ut koden
+        uses: actions/checkout@v7
+        with:
+          fetch-tags: true
+
+      - name: Deploy
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: .nais/dev.yaml
+          IMAGE: ${{ needs.build.outputs.docker_image }}
+
+      - name: Etter deploy
+        if: github.ref == 'refs/heads/main'
+        uses: navikt/digihot-deploy/actions/post-deploy@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lag release
+        if: github.ref == 'refs/heads/main'
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.VERSION_TAG }}
+          release_name: ${{ env.APPLICATION }} ${{ env.VERSION_TAG }}
+          body: ${{ env.CHANGE_LOG }}
+          draft: true
+          prerelease: false
+
+  unleash:
+    name: Deploy Unleash secrets
+    permissions:
+      contents: read
+      id-token: write
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        name: Sjekk ut koden
+      - uses: nais/deploy/actions/deploy@v2
+        name: Deploy Unleash API token
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: .nais/unleash-api-token-dev.yaml

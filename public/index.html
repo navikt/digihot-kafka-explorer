@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kafka-meldinger</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.4/dist/cytoscape.min.js"
+    ></script>
+    <script defer src="/explorer.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Kafka-meldinger</h1>
+        <p id="status" role="status" aria-live="polite">
+          Kobler til meldingsstrømmen …
+        </p>
+      </header>
+      <div class="layout">
+        <section aria-labelledby="diagram-title">
+          <h2 id="diagram-title">Tjenesteflyt</h2>
+          <p>
+            Hver pil viser en ny melding mellom to tjenester. Velg en pil eller
+            en melding for å se innholdet.
+          </p>
+          <div
+            id="diagram"
+            role="img"
+            aria-label="Diagram over tjenester og meldinger"
+          ></div>
+        </section>
+        <aside aria-labelledby="messages-title">
+          <h2 id="messages-title">Nye meldinger</h2>
+          <ol
+            id="messages"
+            aria-label="Meldinger mottatt etter at siden ble åpnet"
+          ></ol>
+        </aside>
+      </div>
+      <section aria-labelledby="details-title">
+        <h2 id="details-title">Meldingsinnhold</h2>
+        <pre id="details" tabindex="0">
+Velg en melding for å se hele innholdet.</pre>
+      </section>
+    </main>
+  </body>
+</html>

@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url"
 import { registerHealthRoutes } from "./health.mts"
 import { createConsumer } from "./kafka.mts"
 import { errorSummary, logger } from "./logger.mts"
-import { parseMessage, type Message } from "./messages.mts"
+import { isExcludedMessage, parseMessage, type Message } from "./messages.mts"
 
 const MAX_MESSAGE_BYTES = 1_000_000
 const clients = new Set<express.Response>()
@@ -99,6 +99,7 @@ async function main() {
           }
           throw error
         }
+        if (isExcludedMessage(parsed)) return
         for (const client of clients) send(client, "message", parsed)
       },
     })

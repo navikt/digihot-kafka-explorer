@@ -224,7 +224,29 @@ test("draws producers, readers and message causes, and opens the full payload", 
   })
   assert.equal(nodes.get("message:6")!.label, "Melding 6")
 
-  for (let sequence = 7; sequence <= 206; sequence++) {
+  const alternative = { eventId: "alternative", eventName: "application_processed" }
+  stream!.listeners.get("message")!({
+    data: JSON.stringify({ sequence: 7, payload: alternative, services: ["c"] }),
+  })
+  assert.equal(nodes.get("message:7")!.label, "Hendelse: application_processed")
+  assert.match(elements.get("messages")!.children[0].children[0].textContent, /application_processed/)
+  stream!.listeners.get("message")!({
+    data: JSON.stringify({
+      sequence: 8,
+      payload: {
+        "@id": "child-of-alternative",
+        "@event_name": "child",
+        "@forårsaket_av": { id: "alternative" },
+      },
+      services: [],
+    }),
+  })
+  assert.deepEqual(
+    [edges.get("cause:8")!.source, edges.get("cause:8")!.target],
+    ["message:7", "message:8"],
+  )
+
+  for (let sequence = 9; sequence <= 208; sequence++) {
     stream!.listeners.get("message")!({
       data: JSON.stringify({
         sequence,
@@ -239,7 +261,7 @@ test("draws producers, readers and message causes, and opens the full payload", 
   assert.equal(edges.has("cause:3"), false)
   assert.equal(nodes.has("message:1"), false)
   assert.equal(nodes.has("service:a"), false)
-  assert.equal(nodes.has("message:206"), true)
+  assert.equal(nodes.has("message:208"), true)
   stream!.onerror()
   assert.match(elements.get("status")!.textContent, /Prøver å koble til igjen/)
 })

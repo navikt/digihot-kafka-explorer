@@ -85,8 +85,21 @@ graph.on("tap", "node", (event) => {
 })
 
 function messageId(message) {
-  const id = message.payload["@id"]
+  const primary = message.payload["@id"]
+  const id =
+    typeof primary === "string" && primary.trim()
+      ? primary
+      : message.payload.eventId
   return typeof id === "string" && id.trim() ? id : null
+}
+
+function eventName(message) {
+  const primary = message.payload["@event_name"]
+  const name =
+    typeof primary === "string" && primary.trim()
+      ? primary
+      : message.payload.eventName
+  return typeof name === "string" && name.trim() ? name : null
 }
 
 function refreshCauses() {
@@ -139,9 +152,9 @@ function addMessage(message) {
   const item = document.createElement("li")
   const button = document.createElement("button")
   button.type = "button"
-  const name = message.payload["@event_name"]
+  const name = eventName(message)
   button.textContent =
-    typeof name === "string" && name.trim()
+    name
       ? `${name} (${message.services.join(" → ") || "ingen tjenester"})`
       : `Melding ${message.sequence} (${message.services.join(" → ") || "ingen tjenester"})`
   button.addEventListener("click", () => showMessage(message))
@@ -160,7 +173,7 @@ function addMessage(message) {
   const label =
     needNames.length > 0
       ? `Behov: ${needNames.join(", ")}${solvedNames.length ? `\nLøst: ${solvedNames.join(", ")}` : ""}`
-      : typeof name === "string" && name.trim()
+      : name
         ? `Hendelse: ${name}`
         : `Melding ${message.sequence}`
   graph.add({

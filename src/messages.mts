@@ -4,6 +4,28 @@ export type Message = {
   services: string[]
 }
 
+const excludedEventNames = new Set([
+  "app_status",
+  "ping",
+  "pong",
+  "application_ready",
+  "application_stop",
+  "application_up",
+  "application_down",
+  "application_not_ready",
+  "aktivitetslogg",
+  "hm-bigquery-sink-hendelse",
+])
+
+export function isExcludedMessage(message: Message): boolean {
+  const primary = message.payload["@event_name"]
+  const eventName =
+    typeof primary === "string" && primary.trim()
+      ? primary
+      : message.payload.eventName
+  return typeof eventName === "string" && excludedEventNames.has(eventName)
+}
+
 export function parseMessage(value: Buffer | null, sequence: number): Message {
   if (!value) {
     throw new Error("Kafka message has no value")

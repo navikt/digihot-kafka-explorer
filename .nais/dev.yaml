@@ -1,18 +1,12 @@
 apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
-  labels:
-    app: digihot-kafka-explorer
-    team: teamdigihot
   name: digihot-kafka-explorer
   namespace: teamdigihot
-  annotations:
-    snorlax.nais.io/enabled: "true"
 spec:
-  image: {{ image }}
-  port: 3000
   ingresses:
     - https://digihot-kafka-explorer.intern.dev.nav.no
+  port: 3000
   liveness:
     path: /isalive
   readiness:
@@ -31,6 +25,6 @@ spec:
     pool: nav-dev
   env:
     - name: PORT
-      value: "3000"
+      value: '3000'
     - name: KAFKA_RAPID_TOPIC
-      value: "teamdigihot.hm-soknadsbehandling-v1"
+      value: 'teamdigihot.hm-soknadsbehandling-v1'

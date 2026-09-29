@@ -27,6 +27,36 @@ const graph = cytoscape({
         "curve-style": "bezier",
       },
     },
+    {
+      selector: 'node[type="message"]',
+      style: {
+        shape: "round-rectangle",
+        "background-color": "#e6f5ed",
+        "border-width": 2,
+        "border-color": "#06893a",
+        "text-wrap": "wrap",
+        "text-max-width": 150,
+      },
+    },
+    {
+      selector: 'node[type="need"]',
+      style: {
+        shape: "ellipse",
+        "background-color": "#fff2df",
+        "border-width": 2,
+        "border-color": "#b35c00",
+        "text-wrap": "wrap",
+        "text-max-width": 150,
+      },
+    },
+    {
+      selector: 'edge[type="cause"]',
+      style: {
+        "line-style": "dashed",
+        "line-color": "#b35c00",
+        "target-arrow-color": "#b35c00",
+      },
+    },
   ],
 })
 
@@ -41,12 +71,54 @@ graph.on("tap", "edge", (event) => {
 })
 
 graph.on("tap", "node", (event) => {
+  const sequence = event.target.data("sequence")
+  if (sequence !== undefined) {
+    const message = messages.get(sequence)
+    if (message) showMessage(message)
+    return
+  }
   const service = event.target.data("label")
   const message = [...messages.values()]
     .reverse()
     .find((item) => item.services.includes(service))
   if (message) showMessage(message)
 })
+
+function messageId(message) {
+  const id = message.payload["@id"]
+  return typeof id === "string" && id.trim() ? id : null
+}
+
+function refreshCauses() {
+  graph.remove(graph.edges().filter((edge) => edge.data("type") === "cause"))
+  const byId = new Map()
+  for (const message of messages.values()) {
+    const id = messageId(message)
+    if (id) {
+      if (!byId.has(id)) byId.set(id, [])
+      byId.get(id).push(message.sequence)
+    }
+  }
+  for (const message of messages.values()) {
+    const cause = message.payload["@forårsaket_av"]
+    if (!cause || typeof cause !== "object" || Array.isArray(cause)) continue
+    const candidates = byId.get(cause.id)
+    const parent =
+      candidates?.findLast((sequence) => sequence < message.sequence) ??
+      candidates?.find((sequence) => sequence !== message.sequence)
+    if (parent === undefined || parent === message.sequence) continue
+    graph.add({
+      group: "edges",
+      data: {
+        id: `cause:${message.sequence}`,
+        source: `message:${parent}`,
+        target: `message:${message.sequence}`,
+        sequence: message.sequence,
+        type: "cause",
+      },
+    })
+  }
+}
 
 function addMessage(message) {
   if (
@@ -76,6 +148,30 @@ function addMessage(message) {
   item.append(button)
   list.prepend(item)
 
+  const needs = message.payload["@behov"]
+  const needNames = Array.isArray(needs)
+    ? needs.filter((need) => typeof need === "string" && need.trim())
+    : []
+  const solutions = message.payload["@løsning"]
+  const solvedNames =
+    solutions && typeof solutions === "object" && !Array.isArray(solutions)
+      ? Object.keys(solutions).filter((need) => needNames.includes(need))
+      : []
+  const label =
+    needNames.length > 0
+      ? `Behov: ${needNames.join(", ")}${solvedNames.length ? `\nLøst: ${solvedNames.join(", ")}` : ""}`
+      : typeof name === "string" && name.trim()
+        ? `Hendelse: ${name}`
+        : `Melding ${message.sequence}`
+  graph.add({
+    group: "nodes",
+    data: {
+      id: `message:${message.sequence}`,
+      label,
+      sequence: message.sequence,
+      type: needNames.length > 0 ? "need" : "message",
+    },
+  })
   message.services.forEach((service) => {
     if (graph.getElementById(`service:${service}`).empty()) {
       graph.add({
@@ -84,17 +180,17 @@ function addMessage(message) {
       })
     }
   })
-  for (let index = 1; index < message.services.length; index++) {
+  message.services.forEach((service, index) => {
     graph.add({
       group: "edges",
       data: {
         id: `message:${message.sequence}:${index}`,
-        source: `service:${message.services[index - 1]}`,
-        target: `service:${message.services[index]}`,
+        source: index === 0 ? `service:${service}` : `message:${message.sequence}`,
+        target: index === 0 ? `message:${message.sequence}` : `service:${service}`,
         sequence: message.sequence,
       },
     })
-  }
+  })
   if (messages.size > MAX_MESSAGES) {
     const oldest = messages.keys().next().value
     messages.delete(oldest)
@@ -102,11 +198,16 @@ function addMessage(message) {
     graph.remove(
       graph.edges().filter((edge) => edge.data("sequence") === oldest),
     )
+    graph.remove(graph.getElementById(`message:${oldest}`))
+  }
+  refreshCauses()
+  if (messages.size === MAX_MESSAGES) {
     graph.remove(
       graph
         .nodes()
         .filter(
           (node) =>
+            node.data("sequence") === undefined &&
             node.connectedEdges().empty() &&
             ![...messages.values()].some((entry) =>
               entry.services.includes(node.data("label")),
@@ -114,9 +215,7 @@ function addMessage(message) {
         ),
     )
   }
-  if (message.services.length) {
-    graph.layout({ name: "breadthfirst", directed: true, padding: 30 }).run()
-  }
+  graph.layout({ name: "breadthfirst", directed: true, padding: 30 }).run()
 }
 
 const events = new EventSource("/events")

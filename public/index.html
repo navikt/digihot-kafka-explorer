@@ -25,15 +25,17 @@
       </header>
       <div class="layout">
         <section aria-labelledby="diagram-title">
-          <h2 id="diagram-title">Tjenesteflyt</h2>
+          <h2 id="diagram-title">Meldingsflyt</h2>
           <p>
-            Hver pil viser en ny melding mellom to tjenester. Velg en pil eller
-            en melding for å se innholdet.
+            Heltrukne piler viser hvem som sendte og leste en melding. Stiplede
+            piler viser hvilken melding som utløste en ny melding
+            (<code>@forårsaket_av</code>). Velg en node, en pil eller en melding
+            for å se innholdet.
           </p>
           <div
             id="diagram"
             role="img"
-            aria-label="Diagram over tjenester og meldinger"
+            aria-label="Diagram over meldinger, tjenester og årsakssammenhenger"
           ></div>
         </section>
         <aside aria-labelledby="messages-title">

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import test from "node:test"
 import { runInNewContext } from "node:vm"
 
-test("shows only incoming messages, links consecutive services and opens the full payload", () => {
+test("draws producers, readers and message causes, and opens the full payload", () => {
   const elements = new Map<string, FakeElement>()
   class FakeElement {
     textContent = ""
@@ -141,12 +141,18 @@ test("shows only incoming messages, links consecutive services and opens the ful
   stream!.listeners.get("message")!({
     data: JSON.stringify({ sequence: 1, payload, services: ["a", "b", "c"] }),
   })
-  assert.deepEqual([...nodes.keys()], ["service:a", "service:b", "service:c"])
+  assert.deepEqual([...nodes.keys()], [
+    "message:1",
+    "service:a",
+    "service:b",
+    "service:c",
+  ])
   assert.deepEqual(
     [...edges.values()].map(({ source, target }) => [source, target]),
     [
-      ["service:a", "service:b"],
-      ["service:b", "service:c"],
+      ["service:a", "message:1"],
+      ["message:1", "service:b"],
+      ["message:1", "service:c"],
     ],
   )
   elements.get("messages")!.children[0].children[0].listeners.get("click")!()
@@ -155,13 +161,70 @@ test("shows only incoming messages, links consecutive services and opens the ful
     JSON.stringify(payload, null, 2),
   )
   assert.equal(elements.get("details")!.focused, true)
-  listeners.get("tap:edge")!({ target: element(edges.get("message:1:1")!) })
+  listeners.get("tap:node")!({ target: element(nodes.get("message:1")!) })
   assert.equal(
     elements.get("details")!.textContent,
     JSON.stringify(payload, null, 2),
   )
 
-  for (let sequence = 2; sequence <= 201; sequence++) {
+  const child = {
+    "@id": "second",
+    "@event_name": "behov",
+    "@behov": ["Dokument"],
+    "@løsning": { Dokument: { status: "ok" } },
+    "@forårsaket_av": { id: "first", event_name: "first_event" },
+  }
+  stream!.listeners.get("message")!({
+    data: JSON.stringify({ sequence: 2, payload: child, services: ["b", "c"] }),
+  })
+  assert.equal(nodes.get("message:2")!.label, "Behov: Dokument\nLøst: Dokument")
+  assert.equal(nodes.get("message:2")!.type, "need")
+  assert.deepEqual(
+    [edges.get("cause:2")!.source, edges.get("cause:2")!.target],
+    ["message:1", "message:2"],
+  )
+  listeners.get("tap:edge")!({ target: element(edges.get("cause:2")!) })
+  assert.equal(elements.get("details")!.textContent, JSON.stringify(child, null, 2))
+
+  stream!.listeners.get("message")!({
+    data: JSON.stringify({
+      sequence: 3,
+      payload: { "@id": "third", "@forårsaket_av": { id: "fourth" } },
+      services: [],
+    }),
+  })
+  assert.equal(edges.has("cause:3"), false)
+  stream!.listeners.get("message")!({
+    data: JSON.stringify({
+      sequence: 4,
+      payload: { "@id": "fourth", "@event_name": "complete" },
+      services: ["c"],
+    }),
+  })
+  assert.equal(nodes.get("message:4")!.label, "Hendelse: complete")
+  assert.deepEqual(
+    [edges.get("message:4:0")!.source, edges.get("message:4:0")!.target],
+    ["service:c", "message:4"],
+  )
+  assert.deepEqual(
+    [edges.get("cause:3")!.source, edges.get("cause:3")!.target],
+    ["message:4", "message:3"],
+  )
+
+  stream!.listeners.get("message")!({
+    data: JSON.stringify({
+      sequence: 5,
+      payload: { "@id": "first" },
+      services: ["b"],
+    }),
+  })
+  assert.equal(edges.get("cause:2")!.source, "message:1")
+  stream!.listeners.get("message")!({
+    data: JSON.stringify({ sequence: 6, payload: {}, services: [] }),
+  })
+  assert.equal(nodes.get("message:6")!.label, "Melding 6")
+
+  for (let sequence = 7; sequence <= 206; sequence++) {
     stream!.listeners.get("message")!({
       data: JSON.stringify({
         sequence,
@@ -172,7 +235,11 @@ test("shows only incoming messages, links consecutive services and opens the ful
   }
   assert.equal(elements.get("messages")!.children.length, 200)
   assert.equal(edges.has("message:1:1"), false)
+  assert.equal(edges.has("cause:2"), false)
+  assert.equal(edges.has("cause:3"), false)
+  assert.equal(nodes.has("message:1"), false)
   assert.equal(nodes.has("service:a"), false)
+  assert.equal(nodes.has("message:206"), true)
   stream!.onerror()
   assert.match(elements.get("status")!.textContent, /Prøver å koble til igjen/)
 })
